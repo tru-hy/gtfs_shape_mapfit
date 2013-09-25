@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 import sys
 import codecs
 import csv
@@ -29,7 +31,7 @@ class NamedTupleCsvReader:
 def bomstrip(f):
 	c = f.read(3)
 	if c != codecs.BOM_UTF8:
-		f.seek(-3)
+		f.seek(-len(c), 1)
 	return f
 
 
