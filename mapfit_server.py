@@ -180,7 +180,15 @@ class MapfitServer(object):
 		
 		self.add_session(session_name, shapefile.file)
 		raise cp.HTTPRedirect("%s/"%session_name)
-		
+
+def run_server(working_dir, mapfile, host="0.0.0.0", port=8080):
+	cpconfig = {
+                'server.socket_host': host,
+                'server.socket_port': port,
+		}
+	cp.quickstart(MapfitServer(working_dir, mapfile),
+		config={'global': cpconfig})
 
 if __name__ == '__main__':
-	cp.quickstart(MapfitServer(sys.argv[1], sys.argv[2]))
+	import argh
+	argh.dispatch_command(run_server)
