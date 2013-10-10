@@ -49,7 +49,10 @@ The results can be visualized with some statistics:
 
 And exported to a new shapes.txt:
 	
-	./gtfs_shape_mapfit.py export < fits.pickle > shapes_fitted.txt
+	./gtfs_shape_mapfit.py export map.osm < fits.pickle > shapes_fitted.txt
+
+With -n flag to the export command the file will also include the OSM
+node ids for the shape points under column `node_id`.
 
 ## Caveats
 

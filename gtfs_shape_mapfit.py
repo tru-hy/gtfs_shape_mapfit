@@ -173,7 +173,26 @@ def process(mapfile, whitelist="", badpoints="", search_radius=50.0):
 		print >>sys.stderr, "Took %fs (avg %fs, approx %fm left)"%(
 			t, np.mean(times), (np.mean(times)*(n-(i+1)))/60.0 )
 
-def export():
+def get_fit_map_path(states):
+	# Path with "non-map-nodes" except for start and end
+	# skipped. Gives same geometry with less points.
+	coords = []
+	coords.append(states[0].position)
+	for state in states[1:]:
+		coords.extend(n for n in state.path)
+	coords.append(states[-1].position)
+	return coords
+
+def get_fit_map_coords(states, node_coords):
+	coords = []
+	coords.append(states[0].point)
+	for state in states[1:]:
+		coords.extend(node_coords[n] for n in state.path)
+	coords.append(states[-1].point)
+	return coords
+
+
+def export(mapfile, node_ids=False):
 	fits = {}
 	while True:
 		try:
@@ -182,11 +201,33 @@ def export():
 		except EOFError:
 			break
 	
-	print "shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence"
+	raw_nodes, edges, tags = osm2graph.get_graph(mapfile)
+	node_coords = {}
+	for key, coords in raw_nodes.iteritems():
+		cart = coord_proj(*coords)
+		node_coords[key] = cart
+
+	hdr = "shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence"
+	if node_ids:
+		hdr += ",node_id"
+	sys.stdout.write(hdr)
+	sys.stdout.write("\n")
+
 	for (shape_id, coords, fit, states) in fits.itervalues():
+		fit = get_fit_map_coords(states, node_coords)
 		lonlat = zip(*coord_proj(*zip(*fit), inverse=True))
+		nodes = get_fit_map_path(states)
+		# Skip the first and last nodes as they don't
+		# hit "exactly" on the node
+		nodes[0] = ""
+		nodes[-1] = ""
+		
 		for i, (lon, lat) in enumerate(lonlat):
-			print ",".join(map(str, (shape_id, lat, lon, i+1)))
+			sys.stdout.write(",".join(map(str, (shape_id, lat, lon, i+1))))
+			if node_ids:
+				sys.stdout.write(","+str(nodes[i]))
+			sys.stdout.write("\n")
+
 			
 
 def view(mapfile, whitelist=""):
