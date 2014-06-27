@@ -20,7 +20,7 @@ due to some library dependencies not supporting the platform.
 
 ## Install
 	
-	git pull --recursive https://github.com/tru-hy/pymapmatch
+	git clone --recursive https://github.com/tru-hy/pymapmatch
 
 ## Usage
 
