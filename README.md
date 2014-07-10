@@ -29,13 +29,25 @@ to city of Tampere's data in mind. In practice if you want to use this
 program, it's best to contact the author.
 
 You'll need a OSM export in XML or PBF format for the area covering the
-wanted shapes, referred in examples as `map.osm`.
+wanted shapes, referred in examples as `map.osm`. There's unfortunately
+no simple web API to automate fetching of this map. You can download
+a suitable area extract from http://download.geofabrik.de/ and use
+the `shapes_bbox.py` script to get a bounding box that fits the
+shapes. This can be used with eg. [osmconvert](http://wiki.openstreetmap.org/wiki/Osmconvert) to extract the region.
+shapes:
+
+	./osmconvert finland-latest.osm.pbf -b=`./shapes_bbox.py hsldata/shapes.txt` -o=helsinki_region.osm
+
+*NOTE*: For some reason the imposm.parse module used is a lot faster with XML
+than pbf, so the former is recommeded.
+
+
 Due to some naive choices in current implementation, the map
 size affects fitting times very strongly. Expect many minutes per one
 shape. The initial loading also takes quite a while as it generates
 a graph from the map and R-tree from the edges.
 
-At the moment the map projection used is also hardcoded in `gtfs_shape_mapfit.py`,
+At the moment the map projection used is also hardcoded in `common.py`,
 so you'll need to change it if you are doing the matching anywhere but in Finland.
 
 The fitting is usually done in two stages, first the fits are made

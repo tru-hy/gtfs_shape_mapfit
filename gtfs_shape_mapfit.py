@@ -1,57 +1,13 @@
 #!/usr/bin/env python2
 
 import sys
-import codecs
-import csv
-from collections import namedtuple
 import time
 import cPickle
 
 import numpy as np
-import pyproj
 
 from pymapmatch import osm2graph, slowmapmatch
-
-# Change this according to your location
-coord_proj = pyproj.Proj(init="epsg:3067")
-
-class NamedTupleCsvReader:
-	def __init__(self, *args, **kwargs):
-		self._reader = iter(csv.reader(*args, **kwargs))
-		hdr = self._reader.next()
-		self.tupletype = namedtuple('csvtuple', hdr)
-	
-	def __iter__(self):
-		return self
-	
-	def next(self):
-		return self.tupletype(*self._reader.next())
-
-
-def bomstrip(f):
-	c = f.read(3)
-	if c != codecs.BOM_UTF8:
-		f.seek(-len(c), 1)
-	return f
-
-
-def read_gtfs_shapes(fileobj):
-	shapes = {}
-	for row in NamedTupleCsvReader(fileobj):
-		if row.shape_id not in shapes:
-			shapes[row.shape_id] = []
-		shapes[row.shape_id].append((
-			int(row.shape_pt_sequence),
-			float(row.shape_pt_lat),
-			float(row.shape_pt_lon)))
-	
-	for shape_id, coords in shapes.iteritems():
-		# Could use a heap if this causes
-		# performance problems (probably wont)
-		coords.sort()
-		lat, lon = zip(*coords)[1:]
-		latlon = zip(lat, lon)
-		yield (shape_id, latlon)
+from common import read_gtfs_shapes, coord_proj
 
 def vectangle(a, b):
 	cosa = np.dot(a, b)/(np.linalg.norm(a)*np.linalg.norm(b))
@@ -156,7 +112,7 @@ def process(mapfile, whitelist="", badpoints="", search_radius=50.0):
 	print >>sys.stderr, "Loading matcher"
 	matcher = get_matcher(mapfile, search_radius=search_radius)
 	
-	shapes = [s for s in read_gtfs_shapes(bomstrip(sys.stdin)) if do_include(s[0])]
+	shapes = [s for s in read_gtfs_shapes(sys.stdin) if do_include(s[0])]
 	n = len(shapes)
 	times = []
 	for i, (shape_id, coords) in enumerate(shapes):
