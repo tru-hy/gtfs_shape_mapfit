@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 proj = om.CoordinateProjector("+init=epsg:3067")
-shape = [s for s in read_gtfs_shapes(sys.stdin)][1][1]
+shape = [s for s in read_gtfs_shapes(sys.stdin)][0][1]
 shape = [proj(*c) for c in shape]
 
 x, y = zip(*shape)
@@ -40,10 +40,10 @@ print "Got map"
 
 points = [om.Point2d(x, y) for x, y in shape]
 t = time.time()
-#matcher.measurements([0]*len(points), points)
-for i, c in enumerate(shape):
-	#print >>sys.stderr, i
-	matcher.measurement(0, *c)
+matcher.measurements([0]*len(points), points)
+#for i, c in enumerate(shape):
+#	#print >>sys.stderr, i
+#	matcher.measurement(0, *c)
 print (time.time() - t)/len(points)*1000
 coords = matcher.best_match_coordinates()
 coords = [(c.x, c.y) for c in coords]
