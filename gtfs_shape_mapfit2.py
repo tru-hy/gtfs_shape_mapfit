@@ -52,7 +52,10 @@ def threadimap(func, itr):
 		yield results.get()
 	"""
 
-def gtfs_shape_mapfit(map_file, projection, gtfs_directory, search_region=100.0):
+def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, search_region=100.0):
+	
+	if whitelist:
+		whitelist = set(whitelist.split(','))
 	def gfile(fname):
 		return open(os.path.join(gtfs_directory, fname))
 	routes = read_gtfs_routes(gfile('routes.txt'))
@@ -103,10 +106,9 @@ def gtfs_shape_mapfit(map_file, projection, gtfs_directory, search_region=100.0)
 		type_filter = ROUTE_TYPE_FILTERS.get(route_type)
 		graph = graphs[type_filter]
 		if graph is None:
-			#write_gtfs_shape(shape_id, shape_coords, sys.stdout)
 			return shape_id, shape_coords
 
-		state_model = omm.DrawnGaussianStateModel(30, 30, graph)
+		state_model = omm.DrawnGaussianStateModel(30, 0.05, graph)
 		matcher = omm.MapMatcher2d(graph, state_model, search_region)
 		
 		coords = [projection(*c) for c in shape_coords]
@@ -118,28 +120,17 @@ def gtfs_shape_mapfit(map_file, projection, gtfs_directory, search_region=100.0)
 		fitted_coords = [(p.x, p.y) for p in matcher.best_match_coordinates()]
 		fitted = [projection.inverse(*c) for c in fitted_coords]
 		
-		#import matplotlib.pyplot as plt
-		#plt.cla()
-		#plt.plot(*zip(*fitted))
-		#plt.plot(*zip(*shape_coords))
-		#import geojsonio
-		#import webbrowser
-		#open('/tmp/shapes/%s.geojson'%(shape_id,), 'w').write(
-		#	dump_geojson(shape_id, fitted, shape_coords))
-			#url = geojsonio.geojsonio_url(dump_geojson(shape_id, fitted, shape_coords), force_gist=True)
-			#webbrowser.open(url)
-		#write_gtfs_shape(shape_id, fitted, sys.stdout)
 		return shape_id, fitted
 	
 	shapes = list(shapes)
+	if whitelist:
+		shapes = [s for s in shapes if s[0] in whitelist]
 	
 	start_time = time.time()
-	#workers = ThreadPool(4)
-	#results = workers.imap_unordered(do_fit, shapes)
-	#import itertools
-	#results = itertools.imap(do_fit, shapes)
 	results = threadimap(do_fit, shapes)
+	sys.stdout.write("shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence\n")
 	for i, (shape_id, shape_coords) in enumerate(results):
+		print >>sys.stderr, shape_id
 		write_gtfs_shape(shape_id, shape_coords, sys.stdout)
 		time_spent = time.time() - start_time
 		mean_time = time_spent/float(i+1)

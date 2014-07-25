@@ -1,6 +1,6 @@
 import io
 import csv
-from collections import namedtuple, defaultdict
+from collections import namedtuple, defaultdict, OrderedDict
 import codecs
 
 import pyproj
@@ -37,7 +37,7 @@ def bomstrip(f):
 
 def read_gtfs_shapes(fileobj):
 	fileobj = bomstrip(fileobj)
-	shapes = {}
+	shapes = OrderedDict()
 	for row in NamedTupleCsvReader(fileobj):
 		if row.shape_id not in shapes:
 			shapes[row.shape_id] = []
@@ -60,6 +60,10 @@ def read_gtfs_routes(fileobj):
 	for row in NamedTupleCsvReader(fileobj):
 		routes[row.route_id] = row
 	return routes
+
+def read_gtfs_stops(fileobj):
+	fileobj = bomstrip(fileobj)
+	return NamedTupleCsvReader(fileobj)
 
 def read_gtfs_shape_trips(fileobj):
 	fileobj = bomstrip(fileobj)
