@@ -1,6 +1,7 @@
 #!/usr/bin/python2
 import sys
 import itertools
+from zipfile import ZipFile, is_zipfile
 
 from common import read_gtfs_shapes, coord_proj
 
@@ -17,7 +18,11 @@ def get_shapes_bounding_box(shapes, margin=1000.0):
 	#	print shape
 
 def shapes_bbox(shapesfile, margin=1000.0, mapinput=sys.stdin):
-	shapes = read_gtfs_shapes(open(shapesfile))
+	if is_zipfile(shapesfile):
+		f = ZipFile(shapesfile).open('shapes.txt')
+	else:
+		f = open(shapesfile)
+	shapes = read_gtfs_shapes(f)
 	bbox = get_shapes_bounding_box(shapes)
 	print ",".join(map(str, itertools.chain(*bbox)))
 
