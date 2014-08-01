@@ -26,6 +26,6 @@ unzip $GTFS_FILE -d $TMP_DIR/orig_gtfs
 cp $TMP_DIR/shapes.filtered.txt $GTFS_DIR/shapes.txt
 cp $TMP_DIR/stops.fitted.txt $GTFS_DIR/stops.txt
 
-zip $RESULT_FILE $GTFS_DIR/*
+zip -j $RESULT_FILE $GTFS_DIR/*
 
 rm -r $TMP_DIR
