@@ -72,3 +72,13 @@ def read_gtfs_shape_trips(fileobj):
 		routes[row.shape_id].append(row)
 	return routes
 
+class GtfsShapeWriter:
+	def __init__(self, output):
+		self.output = output
+		output.write("shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence\n")
+	
+	def __call__(self, shape_id, coords):
+		for i, c in enumerate(coords, 1):
+			self.output.write("%s,%f,%f,%i\n"%(
+				shape_id, c[0], c[1], i))
+

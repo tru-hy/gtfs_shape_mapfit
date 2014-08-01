@@ -5,7 +5,7 @@ import time
 import datetime
 
 import pymapmatch.osmmapmatch as omm
-from common import read_gtfs_shapes, read_gtfs_routes, read_gtfs_shape_trips
+from common import read_gtfs_shapes, read_gtfs_routes, read_gtfs_shape_trips, GtfsShapeWriter
 from collections import defaultdict
 import itertools
 
@@ -19,38 +19,12 @@ ROUTE_TYPE_FILTERS = {
 	'109': "TRAIN_FILTER", # Non-standard type for Helsinki's data
 }
 
-def write_gtfs_shape(shape_id, coords, out):
-	for i, c in enumerate(coords, 1):
-		out.write("%s,%f,%f,%i\n"%(
-			shape_id, c[0], c[1], i))
-
 from threading import Lock, RLock, Thread
 from Queue import Queue
 stderr_lock = Lock()
 def stderr(*args):
 	with stderr_lock:
 		print >>sys.stderr, ' '.join(args)
-
-def threadimap(func, itr):
-	return itertools.imap(func, itr)
-	"""
-	results = Queue()
-	itr = iter(itr)
-	def runit(value):
-		results.put(func(value))
-
-	n_workers = 4
-	n_running = 0
-	for n_running, value in enumerate(itertools.islice(itr, n_workers), start=1):
-		Thread(target=runit, args=(value,)).start()
-
-	for value in itr:
-		yield results.get()
-		Thread(target=runit, args=(value,)).start()
-	
-	for i in range(n_running):
-		yield results.get()
-	"""
 
 def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, search_region=100.0):
 	
@@ -93,7 +67,7 @@ def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, sear
 				self[type_filter] = None
 				return None
 			filt = getattr(omm, type_filter)
-			stderr("Loading graph for %s"%type_filter)
+			#stderr("Loading graph for %s"%type_filter)
 			graph = omm.OsmGraph(map_file, projection, filt)
 			self[type_filter] = graph
 			return graph
@@ -106,7 +80,7 @@ def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, sear
 		type_filter = ROUTE_TYPE_FILTERS.get(route_type)
 		graph = graphs[type_filter]
 		if graph is None:
-			return shape_id, shape_coords
+			return shape_id, shape_coords, [], None, None
 
 		state_model = omm.DrawnGaussianStateModel(30, 0.05, graph)
 		matcher = omm.MapMatcher2d(graph, state_model, search_region)
@@ -120,47 +94,37 @@ def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, sear
 		fitted_coords = [(p.x, p.y) for p in matcher.best_match_coordinates()]
 		fitted = [projection.inverse(*c) for c in fitted_coords]
 		
-		return shape_id, fitted
+		states = []
+		state = matcher.best_current_hypothesis()
+		while state:
+			states.append(state)
+			state = state.parent
+		
+		return shape_id, fitted, states, matcher, type_filter
 	
 	shapes = list(shapes)
 	if whitelist:
 		shapes = [s for s in shapes if s[0] in whitelist]
 	
 	start_time = time.time()
-	results = threadimap(do_fit, shapes)
-	sys.stdout.write("shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence\n")
-	for i, (shape_id, shape_coords) in enumerate(results):
-		print >>sys.stderr, shape_id
-		write_gtfs_shape(shape_id, shape_coords, sys.stdout)
+	results = (do_fit(s) for s in shapes)
+	shape_writer = GtfsShapeWriter(sys.stdout)
+	for i, (shape_id, shape_coords, states, matcher, type_filter) in enumerate(results):
+		likelihoods = [s.measurement_likelihood+s.transition_likelihood for s in states]
 		time_spent = time.time() - start_time
 		mean_time = time_spent/float(i+1)
 		time_left = mean_time*(len(shapes)-i)
-		stderr("Shape %i/%i done, approx %s left"%(i+1, len(shapes), datetime.timedelta(seconds=time_left)))
-		#plt.show()
-
-	#plt.show()
-
-def dump_geojson(shape_id, fitted, orig):
-	import json
-	output = dict(type="FeatureCollection")
-	features = output['features'] = []
-	geom = dict(type="LineString", coordinates=[c[::-1] for c in orig])
-	feature = dict(
-		type="Feature",
-		geometry=geom,
-		properties={"name":shape_id+" orig", "stroke":'red', "stroke-width": 4})
-	features.append(feature)
-	
-	geom = dict(type="LineString", coordinates=[c[::-1] for c in fitted])
-	feature = dict(
-		type="Feature",
-		geometry=geom,
-		properties=dict(name=shape_id, stroke='green'))
-	features.append(feature)
-	
-	return json.dumps(output)
-
-
+		status = "Shape %i/%i, approx %s left"%(i+1, len(shapes), datetime.timedelta(seconds=time_left))
+		if len(likelihoods) == 0:
+			minlik = None
+			n_outliers = 0
+		else:
+			minlik = min(likelihoods)
+			n_outliers = matcher.n_outliers
+		logrow = shape_id, minlik, n_outliers, type_filter, status
+		stderr(';'.join(map(str, logrow)))
+		
+		shape_writer(shape_id, shape_coords)
 
 if __name__ == '__main__':
 	import argh
