@@ -1,3 +1,5 @@
+#!/usr/bin/python2
+
 from imposm.parser import OSMParser
 from common import read_gtfs_stops
 from collections import OrderedDict, defaultdict
