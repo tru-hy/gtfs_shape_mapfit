@@ -5,6 +5,7 @@ MAP_FILE=$1
 PROJECTION=$2
 GTFS_FILE=$3
 RESULT_FILE=$4
+TOOL_DIR="$(dirname "$0")"
 
 if [ $# -lt 4 ]
 then
@@ -17,10 +18,10 @@ GTFS_DIR=$TMP_DIR/orig_gtfs
 mkdir $GTFS_DIR
 unzip $GTFS_FILE -d $TMP_DIR/orig_gtfs
 
-./gtfs_stop_cleaner.py $MAP_FILE $GTFS_DIR/stops.txt > $TMP_DIR/stops.fitted.txt
-./gtfs_shape_mapfit2.py $MAP_FILE $PROJECTION $GTFS_DIR \
+"$TOOL_DIR"/gtfs_stop_cleaner.py $MAP_FILE $GTFS_DIR/stops.txt > $TMP_DIR/stops.fitted.txt
+"$TOOL_DIR"/gtfs_shape_mapfit2.py $MAP_FILE $PROJECTION $GTFS_DIR \
 	2>&1 >$TMP_DIR/shapes.fitted.txt |tee $TMP_DIR/shapefit_stats.txt >&2
-./filter_bad_fits.py $TMP_DIR/shapefit_stats.txt $TMP_DIR/shapes.fitted.txt $GTFS_DIR/shapes.txt \
+"$TOOL_DIR"/filter_bad_fits.py $TMP_DIR/shapefit_stats.txt $TMP_DIR/shapes.fitted.txt $GTFS_DIR/shapes.txt \
 	> $TMP_DIR/shapes.filtered.txt
 
 cp $TMP_DIR/shapes.filtered.txt $GTFS_DIR/shapes.txt
