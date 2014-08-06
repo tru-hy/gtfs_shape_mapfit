@@ -17,13 +17,15 @@ def get_shapes_bounding_box(shapes, margin=1000.0):
 	#for shape in shapes:
 	#	print shape
 
-def shapes_bbox(shapesfile, margin=1000.0, mapinput=sys.stdin):
+def shapes_bbox(shapesfile, margin=1000.0, latfirst=False, mapinput=sys.stdin):
 	if is_zipfile(shapesfile):
 		f = ZipFile(shapesfile).open('shapes.txt')
 	else:
 		f = open(shapesfile)
 	shapes = read_gtfs_shapes(f)
 	bbox = get_shapes_bounding_box(shapes)
+	if latfirst:
+		bbox = [p[::-1] for p in bbox]
 	print ",".join(map(str, itertools.chain(*bbox)))
 
 if __name__ == '__main__':
