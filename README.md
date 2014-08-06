@@ -16,6 +16,7 @@ under AGPLv3 license.
 * Pyproj
 * unzip and zip
 * Python library imposm.parser
+* Python argh
 * Bash
 * What [pymapmatch](https://github.com/tru-hy/pymapmatch) needs and
   argh for argument parsing. Pymapmatch is included as a submodule.
@@ -28,7 +29,8 @@ Debian-like distribution (tested on ubuntu 14.04) using:
 	
 	sudo apt-get install make swig g++ python-dev libreadosm-dev \
 		libboost-graph-dev libproj-dev libgoogle-perftools-dev \
-		osmctools unzip zip python-imposm-parser
+		osmctools unzip zip python-imposm-parser python-pyproj \
+		python-argh
 
 Then fetch the sources:
 	
