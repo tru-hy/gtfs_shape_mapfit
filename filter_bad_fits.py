@@ -38,7 +38,7 @@ def filter_bad_fits(statsfile, fitted_shapes, orig_shapes, criteria_quantiles=2.
 		likelihoods = cols[1]
 		outliers = cols[2]
 		scores = [-l for l, o in zip(likelihoods, outliers)
-			if l is not None and o==0]
+			if l is not None and o == 0]
 		try:
 			minscore = min(scores)
 			scores = [math.sqrt(s-minscore) for s in scores]
@@ -46,16 +46,19 @@ def filter_bad_fits(statsfile, fitted_shapes, orig_shapes, criteria_quantiles=2.
 		except ValueError:
 			score_limit = None
 		
+		print >>sys.stderr, "Score limit %s for %s"%(score_limit, transit_type)
 		for row in rows:
+			shape_id = row[0]
 			if score_limit is None:
 				writer(shape_id, fitted[shape_id])
 				continue
+			if row[2] > 0:
+				print >>sys.stderr, "%i outliers in %s, using the original"%(row[2], row[0])
 
-			shape_id = row[0]
 			lik = row[1]
-			score = (-lik - minscore)**2
+			score = math.sqrt(-lik - minscore)
 			if score > score_limit:
-				print >>sys.stderr, "Probably bad fit for %s, using the original"%row[0]
+				print >>sys.stderr, "Probably bad fit for %s (%f, limit %f), using the original"%(row[0], score, score_limit)
 				writer(shape_id, orig[shape_id])
 
 			else:
