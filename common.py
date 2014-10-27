@@ -21,7 +21,9 @@ class NamedTupleCsvReader:
 		return self.tupletype(*self._reader.next())
 
 def _peeking_bomstrip(f):
-	c = f.peek(3)
+	# The peek seems to be buggy at least
+	# with ZipExtFile
+	c = f.peek(3)[:3] 
 	if c == codecs.BOM_UTF8:
 		f.read(3)
 	return f
@@ -36,6 +38,7 @@ def bomstrip(f):
 
 
 def read_gtfs_shapes(fileobj):
+	print fileobj
 	fileobj = bomstrip(fileobj)
 	shapes = OrderedDict()
 	for row in NamedTupleCsvReader(fileobj):
