@@ -38,7 +38,6 @@ def bomstrip(f):
 
 
 def read_gtfs_shapes(fileobj):
-	print fileobj
 	fileobj = bomstrip(fileobj)
 	shapes = OrderedDict()
 	for row in NamedTupleCsvReader(fileobj):
@@ -75,13 +74,22 @@ def read_gtfs_shape_trips(fileobj):
 		routes[row.shape_id].append(row)
 	return routes
 
+def csvrow(cols):
+	return ",".join(map(str, cols))+"\n"
+
 class GtfsShapeWriter:
-	def __init__(self, output):
+	def __init__(self, output, *extra_cols):
+		cols = "shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence".split(',')
+		cols.extend(extra_cols)
 		self.output = output
-		output.write("shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence\n")
+		output.write(csvrow(cols))
 	
-	def __call__(self, shape_id, coords):
-		for i, c in enumerate(coords, 1):
-			self.output.write("%s,%f,%f,%i\n"%(
-				shape_id, c[0], c[1], i))
+	def __call__(self, shape_id, coords, *extras):
+		for i, cols in enumerate(zip(coords, *extras), 1):
+			# This would be c, *e instead in Python 3 :(
+			c = cols[0]
+			e = cols[1:]
+			row = [shape_id, c[0], c[1], i]
+			row.extend(e)
+			self.output.write(csvrow(row))
 

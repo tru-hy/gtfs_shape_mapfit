@@ -26,7 +26,7 @@ def stderr(*args):
 	with stderr_lock:
 		print >>sys.stderr, ' '.join(args)
 
-def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, search_region=100.0):
+def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, search_region=100.0, node_ids=False):
 	
 	if whitelist:
 		whitelist = set(whitelist.split(','))
@@ -92,6 +92,7 @@ def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, sear
 		#for c in coords:
 		#	matcher.measurement(0, *c)
 		fitted_coords = [(p.x, p.y) for p in matcher.best_match_coordinates()]
+		fitted_nodes = [p for p in matcher.best_match_node_ids()]
 		fitted = [projection.inverse(*c) for c in fitted_coords]
 		
 		states = []
@@ -100,7 +101,7 @@ def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, sear
 			states.append(state)
 			state = state.parent
 		
-		return shape_id, fitted, states, matcher, type_filter
+		return shape_id, fitted, fitted_nodes, states, matcher, type_filter
 	
 	shapes = list(shapes)
 	if whitelist:
@@ -108,8 +109,11 @@ def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, sear
 	
 	start_time = time.time()
 	results = (do_fit(s) for s in shapes)
-	shape_writer = GtfsShapeWriter(sys.stdout)
-	for i, (shape_id, shape_coords, states, matcher, type_filter) in enumerate(results):
+	extra_cols = []
+	if node_ids:
+		extra_cols.append('node_id')
+	shape_writer = GtfsShapeWriter(sys.stdout, *extra_cols)
+	for i, (shape_id, shape_coords, ids, states, matcher, type_filter) in enumerate(results):
 		likelihoods = [s.measurement_likelihood+s.transition_likelihood for s in states]
 		time_spent = time.time() - start_time
 		mean_time = time_spent/float(i+1)
@@ -124,7 +128,11 @@ def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, sear
 		logrow = shape_id, minlik, n_outliers, type_filter, status
 		stderr(';'.join(map(str, logrow)))
 		
-		shape_writer(shape_id, shape_coords)
+		extra_cols = []
+		if node_ids:
+			ids = [p if p > 0 else "" for p in ids]
+			extra_cols.append(ids)
+		shape_writer(shape_id, shape_coords, *extra_cols)
 
 if __name__ == '__main__':
 	import argh
