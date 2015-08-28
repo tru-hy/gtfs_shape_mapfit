@@ -80,7 +80,7 @@ def gtfs_shape_mapfit(map_file, projection, gtfs_directory, whitelist=None, sear
 		type_filter = ROUTE_TYPE_FILTERS.get(route_type)
 		graph = graphs[type_filter]
 		if graph is None:
-			return shape_id, shape_coords, [], None, None
+			return shape_id, shape_coords, [], [], None, None
 
 		state_model = omm.DrawnGaussianStateModel(30, 0.05, graph)
 		matcher = omm.MapMatcher2d(graph, state_model, search_region)
