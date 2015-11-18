@@ -30,7 +30,10 @@ def haversine((lat1, lon1), (lat2, lon2)):
 def read_osm_stops(osmfile):
 	stop_coords = defaultdict(list)
 	def handle_node(node):
-		if node[1].get('highway') != 'bus_stop': return
+		if (node[1].get('highway') != 'bus_stop' and
+                    node[1].get('railway') != 'station' and
+                    node[1].get('railway') != 'tram_stop'):
+                    return
 		if 'ref' not in node[1]: return
 		ref = node[1]['ref']
 		if not ref: return
